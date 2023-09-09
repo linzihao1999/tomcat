@@ -7,7 +7,6 @@ import java.net.Socket;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 
 @Builder
 public class SocketHandler extends Thread {
@@ -21,7 +20,7 @@ public class SocketHandler extends Thread {
         String line;
         while (((line = reader.readLine()) != null) && (!line.isEmpty())) {
             requestBuilder.append(line).append("\r\n");
-//            System.out.println(line);
+            System.out.println(line);
         }
         if (requestBuilder.toString().isEmpty()) return;
         String[] requestParts = requestBuilder.toString().split("\r\n", 2);
@@ -34,7 +33,7 @@ public class SocketHandler extends Thread {
         String httpVersion = requestLineParts[2];
 
         HttpRequest request = HttpRequest.newBuilder()
-                                         .method(method, null)
+                                         .method(method, HttpRequest.BodyPublishers.ofString(requestHeader))
                                          .uri(URI.create(URL))
                                          .version(HttpClient.Version.valueOf(httpVersion))
                                          .build();
@@ -50,8 +49,13 @@ public class SocketHandler extends Thread {
     @Override
     public void run() {
         try {
+            synchronized (this) {
+                this.wait(100);
+            }
             handle();
         } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
